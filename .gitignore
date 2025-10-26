@@ -1,0 +1,14 @@
+cat > .gitignore << 'EOF'
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual env
+.venv/
+
+# Local secrets
+.env
+
+# VS Code
+.vscode/
+EOF
