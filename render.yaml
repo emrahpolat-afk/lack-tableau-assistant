@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: slack-tableau-assistant
+    env: python
+    buildCommand: |
+      rm -rf .venv
+      pip install --upgrade pip
+      pip install --force-reinstall "openai==1.52.0"
+      pip install -r requirements.txt
+    startCommand: uvicorn app:api --host 0.0.0.0 --port 10000
