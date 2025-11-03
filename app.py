@@ -9,12 +9,8 @@ from openai import OpenAI
 # --- Ortam değişkenlerini yükle ---
 load_dotenv()
 
-# --- Lazy OpenAI istemcisi (başlangıçta çökmesin diye) ---
-def get_openai_client():
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError("OPENAI_API_KEY not found in environment.")
-    return OpenAI(api_key=api_key)
+# --- OpenAI istemcisi ---
+client = OpenAI()  # api_key environment’tan otomatik alınır
 
 # --- Tableau bilgileri ---
 TABLEAU_BASE_URL = os.getenv("TABLEAU_BASE_URL")
@@ -42,6 +38,7 @@ TABLEAU_VIEWS = {
     },
 }
 
+
 # --- Tableau Authentication ---
 def get_tableau_token():
     try:
@@ -68,6 +65,7 @@ def get_tableau_token():
         print(f"[ERROR] Tableau auth failed: {e}")
         return None, None
 
+
 # --- Tableau metadata (field list) çek ---
 def get_tableau_fields(view_id):
     try:
@@ -87,27 +85,27 @@ def get_tableau_fields(view_id):
         print(f"[WARN] Tableau field fetch error for {view_id}: {e}")
         return []
 
+
 # --- OpenAI ile analiz et ---
 def find_tableau_report(user_message: str):
-    client = get_openai_client()
-
-    reports_info = {}
-    for name, info in TABLEAU_VIEWS.items():
-        fields = get_tableau_fields(info["id"])
-        reports_info[name] = {"fields": fields, "link": info["link"]}
-
-    prompt = f"""
-    Kullanıcının mesajı: "{user_message}"
-
-    Elinde aşağıdaki raporlar ve içerdiği sütun alanları var:
-
-    {reports_info}
-
-    Bu soruya en uygun raporu belirle.
-    Sadece rapor adını döndür (örnek: "sanal market analiz raporu").
-    """
-
+    """Kullanıcının mesajını analiz edip uygun Tableau raporunu belirler."""
     try:
+        reports_info = {}
+        for name, info in TABLEAU_VIEWS.items():
+            fields = get_tableau_fields(info["id"])
+            reports_info[name] = {"fields": fields, "link": info["link"]}
+
+        prompt = f"""
+        Kullanıcının mesajı: "{user_message}"
+
+        Elinde aşağıdaki raporlar ve içerdiği sütun alanları var:
+
+        {reports_info}
+
+        Bu soruya en uygun raporu belirle.
+        Sadece rapor adını döndür (örnek: "sanal market analiz raporu").
+        """
+
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
@@ -118,14 +116,16 @@ def find_tableau_report(user_message: str):
         print(f"[ERROR] OpenAI report match failed: {e}")
         return None
 
+
 # --- Slack ve FastAPI uygulamaları ---
 bolt_app = SlackApp(
     token=SLACK_BOT_TOKEN,
     signing_secret=SLACK_SIGNING_SECRET
-)  # proxies parametresi kaldırıldı
+)  # proxies kaldırıldı
 
 api = FastAPI()
 handler = SlackRequestHandler(bolt_app)
+
 
 # --- Slack event listener ---
 @bolt_app.event("message")
@@ -141,19 +141,26 @@ def handle_message_events(body, say, logger):
                 say(f"<@{user}> Sorunu analiz ettim ve uygun raporu buldum: {rapor['link']}")
             else:
                 say(f"<@{user}> Maalesef bu konuda veri içeren bir rapor bulamadım 🤔")
+
     except Exception as e:
-        logger.error(f"Slack handler error: {e}")
-        say("İçeride bir hata oluştu, birazdan tekrar dener misin?")
+        print(f"[Slack Error] {e}")
+        try:
+            say("İçeride bir hata oluştu, birazdan tekrar dener misin?")
+        except Exception:
+            pass
+
 
 # --- Slack endpoint ---
 @api.post("/slack/events")
 async def endpoint(req: Request):
     return await handler.handle(req)
 
+
 # --- Test endpoint ---
 @api.get("/")
 def root():
     return {"status": "OpenAI + Tableau bot aktif 🚀"}
+
 
 @api.get("/healthz")
 def health():
