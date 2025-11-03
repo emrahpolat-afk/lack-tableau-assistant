@@ -47,12 +47,12 @@ def get_tableau_token():
 
         url = f"{TABLEAU_BASE_URL}/api/3.20/auth/signin"
         xml_payload = f"""
-        <tsRequest>
-            <credentials name="{TABLEAU_PAT_NAME}" personalAccessTokenName="{TABLEAU_PAT_NAME}" personalAccessTokenSecret="{TABLEAU_PAT_SECRET}">
-                <site contentUrl="{TABLEAU_SITE_ID}" />
-            </credentials>
-        </tsRequest>
-        """
+<tsRequest>
+    <credentials personalAccessTokenName="{TABLEAU_PAT_NAME}" personalAccessTokenSecret="{TABLEAU_PAT_SECRET}">
+        <site contentUrl="{TABLEAU_SITE_ID}" />
+    </credentials>
+</tsRequest>
+"""
         headers = {"Content-Type": "application/xml"}
         response = requests.post(url, data=xml_payload, headers=headers, timeout=10)
         response.raise_for_status()
