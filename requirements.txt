@@ -1,5 +1,5 @@
 fastapi==0.115.0
-slack-bolt==1.21.2
+slack-bolt==1.17.0
 slack-sdk==3.26.2
 python-dotenv==1.0.1
 openai==1.52.0
