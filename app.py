@@ -16,7 +16,6 @@ def get_openai_client():
         raise RuntimeError("OPENAI_API_KEY not found in environment.")
     return OpenAI(api_key=api_key)
 
-
 # --- Tableau bilgileri ---
 TABLEAU_BASE_URL = os.getenv("TABLEAU_BASE_URL")
 TABLEAU_SITE_ID = os.getenv("TABLEAU_SITE_ID")
@@ -27,7 +26,7 @@ TABLEAU_PAT_SECRET = os.getenv("TABLEAU_PAT_SECRET")
 SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
 SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET")
 
-# --- Tableau rapor listesi (örnek view id'ler) ---
+# --- Tableau rapor listesi ---
 TABLEAU_VIEWS = {
     "hemen analiz raporu": {
         "id": "HemenLFL/HemenAnaliz",
@@ -42,7 +41,6 @@ TABLEAU_VIEWS = {
         "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/KAPASTEKONTROL_17566530192920/KAPASTERAPORU",
     },
 }
-
 
 # --- Tableau Authentication ---
 def get_tableau_token():
@@ -70,7 +68,6 @@ def get_tableau_token():
         print(f"[ERROR] Tableau auth failed: {e}")
         return None, None
 
-
 # --- Tableau metadata (field list) çek ---
 def get_tableau_fields(view_id):
     try:
@@ -84,17 +81,14 @@ def get_tableau_fields(view_id):
         response.raise_for_status()
         data = response.json()
 
-        # Alan isimlerini çıkar
         fields = list(data.get("columns", {}).keys())
         return fields
     except Exception as e:
         print(f"[WARN] Tableau field fetch error for {view_id}: {e}")
         return []
 
-
 # --- OpenAI ile analiz et ---
 def find_tableau_report(user_message: str):
-    """Kullanıcının mesajını analiz edip uygun Tableau raporunu belirler."""
     client = get_openai_client()
 
     reports_info = {}
@@ -124,12 +118,14 @@ def find_tableau_report(user_message: str):
         print(f"[ERROR] OpenAI report match failed: {e}")
         return None
 
-
 # --- Slack ve FastAPI uygulamaları ---
-bolt_app = SlackApp(token=SLACK_BOT_TOKEN, signing_secret=SLACK_SIGNING_SECRET)
+bolt_app = SlackApp(
+    token=SLACK_BOT_TOKEN,
+    signing_secret=SLACK_SIGNING_SECRET
+)  # proxies parametresi kaldırıldı
+
 api = FastAPI()
 handler = SlackRequestHandler(bolt_app)
-
 
 # --- Slack event listener ---
 @bolt_app.event("message")
@@ -149,18 +145,15 @@ def handle_message_events(body, say, logger):
         logger.error(f"Slack handler error: {e}")
         say("İçeride bir hata oluştu, birazdan tekrar dener misin?")
 
-
 # --- Slack endpoint ---
 @api.post("/slack/events")
 async def endpoint(req: Request):
     return await handler.handle(req)
 
-
 # --- Test endpoint ---
 @api.get("/")
 def root():
     return {"status": "OpenAI + Tableau bot aktif 🚀"}
-
 
 @api.get("/healthz")
 def health():
