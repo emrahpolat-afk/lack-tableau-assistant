@@ -3,6 +3,7 @@ services:
     name: slack-tableau-assistant
     env: python
     buildCommand: |
+      rm -rf /opt/render/project/.venv || true
       pip install --upgrade pip
       pip uninstall -y openai || true
       pip install openai==1.35.14
