@@ -218,3 +218,10 @@ def root():
 @api.get("/healthz")
 def health():
     return {"ok": True}
+# --- Manuel test (Render deploy sırasında çalışır) ---
+
+if __name__ == "__main__":
+    print("=== TEST BAŞLATILDI ===")
+    get_tableau_fields("KAPASTEKONTROL_17566530192920/KAPASTERAPORU")
+    print("=== TEST BİTTİ ===")
+
