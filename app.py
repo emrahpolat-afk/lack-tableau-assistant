@@ -45,24 +45,39 @@ def get_tableau_token():
         if not all([TABLEAU_BASE_URL, TABLEAU_SITE_ID, TABLEAU_PAT_NAME, TABLEAU_PAT_SECRET]):
             raise ValueError("Missing Tableau environment variables")
 
-        url = f"{TABLEAU_BASE_URL}/api/3.20/auth/signin"
-        xml_payload = f"""
-<tsRequest>
-    <credentials personalAccessTokenName="{TABLEAU_PAT_NAME}" personalAccessTokenSecret="{TABLEAU_PAT_SECRET}">
-        <site contentUrl="{TABLEAU_SITE_ID}" />
-    </credentials>
-</tsRequest>
-"""
-        headers = {"Content-Type": "application/xml"}
-        response = requests.post(url, data=xml_payload, headers=headers, timeout=10)
+        url = f"{TABLEAU_BASE_URL}/api/3.21/auth/signin"
+
+        xml_payload = f"""<?xml version="1.0" encoding="UTF-8"?>
+        <tsRequest>
+            <credentials personalAccessTokenName="{TABLEAU_PAT_NAME}" personalAccessTokenSecret="{TABLEAU_PAT_SECRET}">
+                <site contentUrl="{TABLEAU_SITE_ID}" />
+            </credentials>
+        </tsRequest>
+        """
+
+        headers = {
+            "Content-Type": "application/xml",
+            "Accept": "application/json"
+        }
+
+        response = requests.post(url, data=xml_payload.encode("utf-8"), headers=headers, timeout=15)
         response.raise_for_status()
 
-        xml = response.text
-        token = xml.split('token="')[1].split('"')[0]
-        site_id = xml.split('site id="')[1].split('"')[0]
+        # JSON veya XML response kontrolü
+        if response.headers.get("Content-Type", "").startswith("application/json"):
+            data = response.json()
+            token = data["credentials"]["token"]
+            site_id = data["credentials"]["site"]["id"]
+        else:
+            xml = response.text
+            token = xml.split('token="')[1].split('"')[0]
+            site_id = xml.split('site id="')[1].split('"')[0]
+
+        print("[INFO] ✅ Tableau token fetched successfully")
         return token, site_id
+
     except Exception as e:
-        print(f"[ERROR] Tableau auth failed: {e}")
+        print(f"[ERROR] ❌ Tableau auth failed: {e}")
         return None, None
 
 
@@ -73,16 +88,21 @@ def get_tableau_fields(view_id):
         if not token:
             return []
 
-        url = f"{TABLEAU_BASE_URL}/api/3.20/sites/{site_id}/views/{view_id}/data"
-        headers = {"X-Tableau-Auth": token}
-        response = requests.get(url, headers=headers, timeout=10)
+        url = f"{TABLEAU_BASE_URL}/api/3.21/sites/{site_id}/views/{view_id}/data"
+        headers = {"X-Tableau-Auth": token, "Accept": "application/json"}
+        response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
-        data = response.json()
 
-        fields = list(data.get("columns", {}).keys())
+        data = response.json()
+        if "columns" in data:
+            fields = [c["name"] for c in data["columns"]]
+        else:
+            fields = list(data.keys())
+
+        print(f"[INFO] Fields fetched for {view_id}: {fields}")
         return fields
     except Exception as e:
-        print(f"[WARN] Tableau field fetch error for {view_id}: {e}")
+        print(f"[WARN] ⚠️ Tableau field fetch error for {view_id}: {e}")
         return []
 
 
@@ -111,18 +131,15 @@ def find_tableau_report(user_message: str):
             messages=[{"role": "user", "content": prompt}],
         )
         rapor_adi = response.choices[0].message.content.strip().lower()
+        print(f"[INFO] OpenAI matched report: {rapor_adi}")
         return reports_info.get(rapor_adi)
     except Exception as e:
-        print(f"[ERROR] OpenAI report match failed: {e}")
+        print(f"[ERROR] 🤖 OpenAI report match failed: {e}")
         return None
 
 
 # --- Slack ve FastAPI uygulamaları ---
-bolt_app = SlackApp(
-    token=SLACK_BOT_TOKEN,
-    signing_secret=SLACK_SIGNING_SECRET
-)  # proxies kaldırıldı
-
+bolt_app = SlackApp(token=SLACK_BOT_TOKEN, signing_secret=SLACK_SIGNING_SECRET)
 api = FastAPI()
 handler = SlackRequestHandler(bolt_app)
 
@@ -141,7 +158,6 @@ def handle_message_events(body, say, logger):
                 say(f"<@{user}> Sorunu analiz ettim ve uygun raporu buldum: {rapor['link']}")
             else:
                 say(f"<@{user}> Maalesef bu konuda veri içeren bir rapor bulamadım 🤔")
-
     except Exception as e:
         print(f"[Slack Error] {e}")
         try:
