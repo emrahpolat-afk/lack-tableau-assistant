@@ -24,20 +24,11 @@ SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET")
 
 # --- Tableau rapor listesi ---
 TABLEAU_VIEWS = {
-    "hemen analiz raporu": {
-        "path": "HemenGnLkRapor/sheets/Hemenzet",
-        "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/HemenGnLkRapor/sheets/Hemenzet",
-    },
-    "sanal market analiz raporu": {
-        "path": "SepeteGirenAnaliz/sheets/SEPETEGERENANALZKATEGORBAZLI",
-        "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/SepeteGirenAnaliz/sheets/SEPETEGERENANALZKATEGORBAZLI",
-    },
     "kapasite raporu": {
-        "path": "MACRONLINEPOCRaporu/sheets/MACRONLINEPOCRAPORU",
-        "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/MACRONLINEPOCRaporu/sheets/MACRONLINEPOCRAPORU",
+        "path": "KAPASTEKONTROL_17566530192920/sheets/Ma%C4%9Faza%20K%C3%BCm%C3%BCle",
+        "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/KAPASTEKONTROL_17566530192920/KAPASTERAPORU",
     },
 }
-
 # --- Tableau Authentication ---
 def get_tableau_token():
     """Tableau PAT ile token alır"""
