@@ -64,7 +64,7 @@ def get_tableau_token():
 
 # --- Tableau GraphQL Metadata ile kolonları çek ---
 def get_tableau_fields(view_path):
-    """View içindeki kolon isimlerini GraphQL metadata API üzerinden çeker (gelişmiş sürüm)"""
+    """View içindeki kolon isimlerini GraphQL metadata API üzerinden çeker (site dahil tam path ile)"""
     try:
         token, site_id = get_tableau_token()
         if not token:
@@ -76,13 +76,14 @@ def get_tableau_fields(view_path):
             "Content-Type": "application/json",
         }
 
+        # site adı + workbook + view birleşimi
+        qualified_name_with_site = f"{TABLEAU_SITE_ID}/{view_path}"
         view_name = view_path.split("/")[-1]
-        workbook_name = view_path.split("/")[0]
 
         graphql_query = {
             "query": f"""
             {{
-              view(qualifiedName: "{TABLEAU_SITE_ID}/{view_path}") {{
+              view(qualifiedName: "{qualified_name_with_site}") {{
                 name
                 workbook {{ name }}
                 fields {{ name dataType }}
@@ -101,23 +102,15 @@ def get_tableau_fields(view_path):
         data = response.json()
 
         fields = []
-        view_info = None
-
-        # Önce qualifiedName sonucu
-        try:
-            view_info = data.get("data", {}).get("view")
-            if not view_info:
-                view_info = data.get("data", {}).get("altView")
-        except Exception:
-            pass
+        view_info = data.get("data", {}).get("view") or data.get("data", {}).get("altView")
 
         if view_info and "fields" in view_info:
             fields = [f["name"] for f in view_info["fields"]]
 
         if not fields:
-            print(f"[WARN] View bulunamadı veya alan listesi boş: {view_path}")
+            print(f"[WARN] View bulunamadı veya alan listesi boş: {qualified_name_with_site}")
         else:
-            print(f"[INFO] Fields fetched for {view_path}: {fields}")
+            print(f"[INFO] Fields fetched for {qualified_name_with_site}: {fields}")
 
         return fields
 
