@@ -115,6 +115,7 @@ def get_tableau_fields(view_path):
     except Exception as e:
         print(f"[WARN] ⚠️ Tableau field fetch error for {view_path}: {e}")
         return []
+
 # --- OpenAI ile rapor eşleştirme ---
 def find_tableau_report(user_message: str):
     """Kullanıcı mesajına göre en uygun raporu seçer"""
