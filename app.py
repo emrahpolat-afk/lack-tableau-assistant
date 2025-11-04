@@ -64,7 +64,7 @@ def get_tableau_token():
 
 # --- Tableau GraphQL Metadata ile kolonları çek ---
 def get_tableau_fields(view_path):
-    """View içindeki kolon isimlerini GraphQL metadata API üzerinden çeker (site dahil tam path ile)"""
+    """GraphQL metadata API'den kolonları çeker ve çıktıyı log’a basar (debug sürümü)"""
     try:
         token, site_id = get_tableau_token()
         if not token:
@@ -74,9 +74,9 @@ def get_tableau_fields(view_path):
         headers = {
             "X-Tableau-Auth": token,
             "Content-Type": "application/json",
+            "Accept": "application/json"
         }
 
-        # site adı + workbook + view birleşimi
         qualified_name_with_site = f"{TABLEAU_SITE_ID}/{view_path}"
         view_name = view_path.split("/")[-1]
 
@@ -98,8 +98,15 @@ def get_tableau_fields(view_path):
         }
 
         response = requests.post(graphql_url, json=graphql_query, headers=headers, timeout=20)
+        print(f"[DEBUG] GraphQL status: {response.status_code}")
+        print(f"[DEBUG] GraphQL response: {response.text[:500]}")  # sadece ilk 500 karakter
+
         response.raise_for_status()
         data = response.json()
+
+        if not data or "data" not in data:
+            print(f"[WARN] GraphQL response boş veya geçersiz.")
+            return []
 
         fields = []
         view_info = data.get("data", {}).get("view") or data.get("data", {}).get("altView")
