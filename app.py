@@ -29,9 +29,9 @@ TABLEAU_VIEWS = {
         "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/HemenLFL/HemenAnaliz"
     },
     "kapasite raporu": {
-        "path": "KAPASTEKONTROL_17566530192920/sheets/Ma%C4%9Faza%20K%C3%BCm%C3%BCle",
-        "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/KAPASTEKONTROL_17566530192920/KAPASTERAPORU"
-    },
+    "path": "KAPASTEKONTROL_17566530192920/KAPASTERAPORU",
+    "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/KAPASTEKONTROL_17566530192920/KAPASTERAPORU"
+},
     "macronline poc raporu": {
         "path": "MACRONLINEPOCRaporu/sheets/MACRONLINEPOCRAPORU",
         "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/MACRONLINEPOCRaporu/MACRONLINEPOCRAPORU"
@@ -71,7 +71,7 @@ import csv
 import io
 
 def get_tableau_fields(view_path):
-    """Önce view_id bulur, sonra kolon isimlerini döner."""
+    """Önce view_id bulur, sonra ilk 5 satırı çekip kolon isimlerini döner."""
     try:
         token, site_id = get_tableau_token()
         if not token:
@@ -99,6 +99,34 @@ def get_tableau_fields(view_path):
         if not view_id:
             print(f"[WARN] View ID bulunamadı: {view_path}")
             return []
+
+        print(f"[INFO] View ID bulundu: {view_id}")
+
+        # 2️⃣ İlk 5 satırı çek
+        data_url = f"{TABLEAU_BASE_URL}/api/3.21/sites/{site_id}/views/{view_id}/data"
+        params = {"maxrows": 5}
+        data_response = requests.get(data_url, headers=headers, params=params, timeout=15)
+
+        if data_response.status_code != 200:
+            print(f"[WARN] Veri alınamadı: {data_response.status_code} - {data_response.text}")
+            return []
+
+        csv_data = data_response.text
+        print("[DEBUG] İlk 5 satırdan gelen ham CSV verisi:")
+        print(csv_data.splitlines()[:6])  # ilk 5 satırı göster
+
+        # 3️⃣ Kolon isimlerini çıkar
+        import csv
+        from io import StringIO
+        reader = csv.DictReader(StringIO(csv_data))
+        fieldnames = reader.fieldnames
+        print(f"[INFO] Kolonlar bulundu: {fieldnames}")
+
+        return fieldnames or []
+
+    except Exception as e:
+        print(f"[ERROR] Tableau field fetch hatası: {e}")
+        return []
 
         # 2️⃣ View datasını al
         url_data = f"{TABLEAU_BASE_URL}/api/3.21/sites/{site_id}/views/{view_id}/data"
