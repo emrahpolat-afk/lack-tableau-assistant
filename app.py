@@ -82,6 +82,8 @@ def get_tableau_fields(view_path):
         response.raise_for_status()
         data = response.json()
 
+        print(f"[DEBUG] Available Tableau views: {[v.get('contentUrl') for v in data.get('views', {}).get('view', [])]}")
+
         view_id = None
         for view in data.get("views", {}).get("view", []):
             content_url = view.get("contentUrl", "").lower()
