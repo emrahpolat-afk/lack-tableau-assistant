@@ -222,6 +222,6 @@ def health():
 
 if __name__ == "__main__":
     print("=== TEST BAŞLATILDI ===")
-    get_tableau_fields("KAPASTEKONTROL_17566530192920/KAPASTERAPORU")
+    get_tableau_fields("LFL/MacrocenterLFL")
     print("=== TEST BİTTİ ===")
 
