@@ -220,8 +220,10 @@ def health():
     return {"ok": True}
 # --- Manuel test (Render deploy sırasında çalışır) ---
 
-if __name__ == "__main__":
-    print("=== VIEW LIST TEST BAŞLADI ===")
-    get_tableau_fields("LFL/MacrocenterLFL")
-    print("=== VIEW LIST TEST BİTTİ ===")
+@api.get("/debug_views")
+def debug_views():
+    print("=== VIEW TEST ÇALIŞIYOR ===")
+    result = get_tableau_fields("LFL/MacrocenterLFL")
+    print("=== VIEW TEST SONU ===")
+    return {"fields": result}
 
