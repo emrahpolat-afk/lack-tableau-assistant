@@ -13,8 +13,8 @@ load_dotenv()
 client = OpenAI()
 
 # --- Tableau bilgileri ---
-TABLEAU_BASE_URL = os.getenv("TABLEAU_BASE_URL")
-TABLEAU_SITE_ID = os.getenv("TABLEAU_SITE_ID")
+TABLEAU_BASE_URL = os.getenv("TABLEAU_BASE_URL")  # örn: https://prod-useast-b.online.tableau.com
+TABLEAU_SITE_ID = os.getenv("TABLEAU_SITE_ID")    # örn: emigros
 TABLEAU_PAT_NAME = os.getenv("TABLEAU_PAT_NAME")
 TABLEAU_PAT_SECRET = os.getenv("TABLEAU_PAT_SECRET")
 
@@ -40,6 +40,7 @@ TABLEAU_VIEWS = {
 
 # --- Tableau Authentication ---
 def get_tableau_token():
+    """Tableau PAT ile token alır"""
     try:
         url = f"{TABLEAU_BASE_URL}/api/3.21/auth/signin"
         xml_payload = f"""
@@ -61,8 +62,9 @@ def get_tableau_token():
         print(f"[ERROR] ❌ Tableau auth failed: {e}")
         return None, None
 
-# --- GraphQL Metadata üzerinden kolonları al ---
+# --- Tableau GraphQL Metadata ile kolonları çek ---
 def get_tableau_fields(view_path):
+    """View içindeki kolon isimlerini GraphQL metadata API üzerinden çeker"""
     try:
         token, site_id = get_tableau_token()
         if not token:
@@ -74,13 +76,15 @@ def get_tableau_fields(view_path):
             "Content-Type": "application/json",
         }
 
-        # sadece view adıyla değil path ile arıyoruz
-        view_name = view_path.split("/")[-1]
+        # qualifiedName ile sorgu (örnek: LFL/SanalMarketLFL_1)
         graphql_query = {
             "query": f"""
             {{
-              view(name: "{view_name}") {{
+              view(qualifiedName: "{view_path}") {{
                 name
+                workbook {{
+                  name
+                }}
                 fields {{
                   name
                   dataType
@@ -96,21 +100,26 @@ def get_tableau_fields(view_path):
 
         fields = []
         try:
-            view_info = data["data"]["view"]
+            view_info = data.get("data", {}).get("view")
             if view_info and "fields" in view_info:
                 fields = [f["name"] for f in view_info["fields"]]
         except Exception:
             pass
 
-        print(f"[INFO] Fields fetched for {view_path}: {fields}")
+        if not fields:
+            print(f"[WARN] View bulunamadı veya alan listesi boş: {view_path}")
+        else:
+            print(f"[INFO] Fields fetched for {view_path}: {fields}")
+
         return fields
 
     except Exception as e:
         print(f"[WARN] ⚠️ Tableau GraphQL fetch error for {view_path}: {e}")
         return []
 
-# --- OpenAI ile analiz et ---
+# --- OpenAI ile rapor eşleştirme ---
 def find_tableau_report(user_message: str):
+    """Kullanıcı mesajına göre en uygun raporu seçer"""
     try:
         reports_info = {}
         for name, info in TABLEAU_VIEWS.items():
@@ -120,11 +129,11 @@ def find_tableau_report(user_message: str):
         prompt = f"""
         Kullanıcının mesajı: "{user_message}"
 
-        Elinde aşağıdaki raporlar ve içerdiği kolonlar var:
+        Elinde aşağıdaki Tableau raporları var (alan isimleriyle birlikte):
 
         {reports_info}
 
-        Bu soruya en uygun raporu seç.
+        Bu mesaja en uygun raporu seç.
         Sadece rapor adını döndür (örnek: "sanal market analiz raporu").
         """
 
@@ -139,7 +148,7 @@ def find_tableau_report(user_message: str):
         print(f"[ERROR] 🤖 OpenAI report match failed: {e}")
         return None
 
-# --- Slack ve FastAPI ---
+# --- Slack + FastAPI entegrasyonu ---
 bolt_app = SlackApp(token=SLACK_BOT_TOKEN, signing_secret=SLACK_SIGNING_SECRET)
 api = FastAPI()
 handler = SlackRequestHandler(bolt_app)
@@ -158,10 +167,11 @@ def handle_message_events(body, say, logger):
                 say(f"<@{user}> Sorunu analiz ettim ve uygun raporu buldum: {rapor['link']}")
             else:
                 say(f"<@{user}> Maalesef bu konuda veri içeren bir rapor bulamadım 🤔")
+
     except Exception as e:
         print(f"[Slack Error] {e}")
         try:
-            say("İçeride bir hata oluştu, birazdan tekrar dener misin?")
+            say("Bir hata oluştu, lütfen tekrar dener misin?")
         except Exception:
             pass
 
