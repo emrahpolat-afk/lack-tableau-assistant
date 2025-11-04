@@ -68,56 +68,53 @@ import csv
 import io
 
 def get_tableau_fields(view_path):
-    """REST API ile view datasından ilk satırı çekip kolon isimlerini döner."""
+    """Önce view_id bulur, sonra kolon isimlerini döner."""
     try:
         token, site_id = get_tableau_token()
         if not token:
             print("[WARN] Tableau token alınamadı.")
             return []
 
-            # 1️⃣ View ID’yi bul
-    url_lookup = f"{TABLEAU_BASE_URL}/api/3.21/sites/{site_id}/views"
-    headers = {"X-Tableau-Auth": token, "Accept": "application/json"}
-    response = requests.get(url_lookup, headers=headers, timeout=15)
-    response.raise_for_status()
-    data = response.json()
+        # 1️⃣ View ID’yi bul
+        url_lookup = f"{TABLEAU_BASE_URL}/api/3.21/sites/{site_id}/views"
+        headers = {"X-Tableau-Auth": token, "Accept": "application/json"}
+        response = requests.get(url_lookup, headers=headers, timeout=15)
+        response.raise_for_status()
+        data = response.json()
 
-    print("[DEBUG] Tableau'dan dönen view listesi:")
-    for v in data.get("views", {}).get("view", []):
-        print(f" - {v.get('name')} | {v.get('contentUrl')}")
+        print("[DEBUG] Tableau'dan dönen view listesi:")
+        for v in data.get("views", {}).get("view", []):
+            print(f" - {v.get('name')} | {v.get('contentUrl')}")
 
-    view_id = None
-    for view in data.get("views", {}).get("view", []):
-        content_url = view.get("contentUrl", "").lower()
-        if view_path.lower().split("/")[-1] in content_url.lower():
-            view_id = view.get("id")
-            break
-            
+        view_id = None
+        for view in data.get("views", {}).get("view", []):
+            content_url = view.get("contentUrl", "").lower()
+            if view_path.lower().split("/")[-1] in content_url.lower():
+                view_id = view.get("id")
+                break
+
         if not view_id:
             print(f"[WARN] View ID bulunamadı: {view_path}")
             return []
 
-        # 2️⃣ CSV formatında veri al
+        # 2️⃣ View datasını al
         url_data = f"{TABLEAU_BASE_URL}/api/3.21/sites/{site_id}/views/{view_id}/data"
-        headers["Accept"] = "text/csv"
-        response = requests.get(url_data, headers=headers, timeout=20)
-        response.raise_for_status()
+        response_data = requests.get(url_data, headers=headers, timeout=15)
+        response_data.raise_for_status()
+        data_json = response_data.json()
 
-        # 3️⃣ CSV’den kolon başlıklarını al
-        csv_text = response.text
-        reader = csv.reader(io.StringIO(csv_text))
-        headers_row = next(reader, None)
-        if not headers_row:
-            print(f"[WARN] Veri boş geldi: {view_path}")
-            return []
+        fields = []
+        if "columns" in data_json:
+            fields = [col["name"] for col in data_json["columns"]]
+        elif isinstance(data_json, dict):
+            fields = list(data_json.keys())
 
-        print(f"[INFO] Fields fetched for {view_path}: {headers_row}")
-        return headers_row
+        print(f"[INFO] Fields fetched for {view_path}: {fields}")
+        return fields
 
     except Exception as e:
-        print(f"[WARN] ⚠️ Tableau REST fetch error for {view_path}: {e}")
+        print(f"[WARN] ⚠️ Tableau field fetch error for {view_path}: {e}")
         return []
-
 # --- OpenAI ile rapor eşleştirme ---
 def find_tableau_report(user_message: str):
     """Kullanıcı mesajına göre en uygun raporu seçer"""
