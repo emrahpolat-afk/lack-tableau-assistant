@@ -25,16 +25,16 @@ SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET")
 # --- Tableau rapor listesi ---
 TABLEAU_VIEWS = {
     "hemen analiz raporu": {
-        "path": "HemenLFL/HemenAnaliz",
-        "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/HemenLFL/HemenAnaliz",
+        "path": "HemenGnLkRapor/sheets/Hemenzet",
+        "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/HemenGnLkRapor/sheets/Hemenzet",
     },
     "sanal market analiz raporu": {
-        "path": "LFL/SanalMarketLFL_1",
-        "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/LFL/SanalMarketLFL_1",
+        "path": "SepeteGirenAnaliz/sheets/SEPETEGERENANALZKATEGORBAZLI",
+        "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/SepeteGirenAnaliz/sheets/SEPETEGERENANALZKATEGORBAZLI",
     },
     "kapasite raporu": {
-        "path": "KAPASTEKONTROL_17566530192920/KAPASTERAPORU",
-        "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/KAPASTEKONTROL_17566530192920/KAPASTERAPORU",
+        "path": "MACRONLINEPOCRaporu/sheets/MACRONLINEPOCRAPORU",
+        "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/MACRONLINEPOCRaporu/sheets/MACRONLINEPOCRAPORU",
     },
 }
 
