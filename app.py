@@ -221,7 +221,7 @@ def health():
 # --- Manuel test (Render deploy sırasında çalışır) ---
 
 if __name__ == "__main__":
-    print("=== VIEW LIST TEST ===")
-    fields = get_tableau_fields("LFL/MacrocenterLFL")
-    print("=== TEST SONU ===", fields)
+    print("=== VIEW LIST TEST BAŞLADI ===")
+    get_tableau_fields("LFL/MacrocenterLFL")
+    print("=== VIEW LIST TEST BİTTİ ===")
 
