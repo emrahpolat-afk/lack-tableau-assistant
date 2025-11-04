@@ -75,24 +75,24 @@ def get_tableau_fields(view_path):
             print("[WARN] Tableau token alınamadı.")
             return []
 
-        # 1️⃣ View ID bul
-        url_lookup = f"{TABLEAU_BASE_URL}/api/3.21/sites/{site_id}/views"
-        headers = {"X-Tableau-Auth": token, "Accept": "application/json"}
-        response = requests.get(url_lookup, headers=headers, timeout=15)
-        response.raise_for_status()
-        data = response.json()
+            # 1️⃣ View ID’yi bul
+    url_lookup = f"{TABLEAU_BASE_URL}/api/3.21/sites/{site_id}/views"
+    headers = {"X-Tableau-Auth": token, "Accept": "application/json"}
+    response = requests.get(url_lookup, headers=headers, timeout=15)
+    response.raise_for_status()
+    data = response.json()
 
-     print("[DEBUG] Tableau'dan dönen view listesi:")
-for v in data.get("views", {}).get("view", []):
-    print(f" - {v.get('name')} | {v.get('contentUrl')}")
+    print("[DEBUG] Tableau'dan dönen view listesi:")
+    for v in data.get("views", {}).get("view", []):
+        print(f" - {v.get('name')} | {v.get('contentUrl')}")
 
-        view_id = None
-        for view in data.get("views", {}).get("view", []):
-            content_url = view.get("contentUrl", "").lower()
-            if view_path.lower().split("/")[-1] in content_url.lower():
-                view_id = view.get("id")
-                break
-
+    view_id = None
+    for view in data.get("views", {}).get("view", []):
+        content_url = view.get("contentUrl", "").lower()
+        if view_path.lower().split("/")[-1] in content_url.lower():
+            view_id = view.get("id")
+            break
+            
         if not view_id:
             print(f"[WARN] View ID bulunamadı: {view_path}")
             return []
