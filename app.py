@@ -24,10 +24,22 @@ SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET")
 
 # --- Tableau rapor listesi ---
 TABLEAU_VIEWS = {
+    "hemen analiz raporu": {
+        "path": "HemenLFL/HemenAnaliz/sheets/G%C3%BCn%20Baz%C4%B1nda",
+        "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/HemenLFL/HemenAnaliz"
+    },
     "kapasite raporu": {
         "path": "KAPASTEKONTROL_17566530192920/sheets/Ma%C4%9Faza%20K%C3%BCm%C3%BCle",
-        "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/KAPASTEKONTROL_17566530192920/KAPASTERAPORU",
+        "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/KAPASTEKONTROL_17566530192920/KAPASTERAPORU"
     },
+    "macronline poc raporu": {
+        "path": "MACRONLINEPOCRaporu/sheets/MACRONLINEPOCRAPORU",
+        "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/MACRONLINEPOCRaporu/MACRONLINEPOCRAPORU"
+    },
+    "macrocenter lfl raporu": {
+        "path": "LFL/MacrocenterLFL/sheets/Macrocenter%20LFL%20G%C3%BCn",
+        "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/LFL/MacrocenterLFL"
+    }
 }
 # --- Tableau Authentication ---
 def get_tableau_token():
