@@ -63,66 +63,55 @@ def get_tableau_token():
         return None, None
 
 # --- Tableau GraphQL Metadata ile kolonları çek ---
+
+import csv
+import io
+
 def get_tableau_fields(view_path):
-    """GraphQL metadata API'den kolonları çeker ve çıktıyı log’a basar (debug sürümü)"""
+    """REST API ile view datasından ilk satırı çekip kolon isimlerini döner."""
     try:
         token, site_id = get_tableau_token()
         if not token:
+            print("[WARN] Tableau token alınamadı.")
             return []
 
-        graphql_url = f"{TABLEAU_BASE_URL}/api/metadata/graphql"
-        headers = {
-            "X-Tableau-Auth": token,
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        }
-
-        qualified_name_with_site = f"{TABLEAU_SITE_ID}/{view_path}"
-        view_name = view_path.split("/")[-1]
-
-        graphql_query = {
-            "query": f"""
-            {{
-              view(qualifiedName: "{qualified_name_with_site}") {{
-                name
-                workbook {{ name }}
-                fields {{ name dataType }}
-              }}
-              altView: view(name: "{view_name}") {{
-                name
-                workbook {{ name }}
-                fields {{ name dataType }}
-              }}
-            }}
-            """
-        }
-
-        response = requests.post(graphql_url, json=graphql_query, headers=headers, timeout=20)
-        print(f"[DEBUG] GraphQL status: {response.status_code}")
-        print(f"[DEBUG] GraphQL response: {response.text[:500]}")  # sadece ilk 500 karakter
-
+        # 1️⃣ View ID bul
+        url_lookup = f"{TABLEAU_BASE_URL}/api/3.21/sites/{site_id}/views"
+        headers = {"X-Tableau-Auth": token, "Accept": "application/json"}
+        response = requests.get(url_lookup, headers=headers, timeout=15)
         response.raise_for_status()
         data = response.json()
 
-        if not data or "data" not in data:
-            print(f"[WARN] GraphQL response boş veya geçersiz.")
+        view_id = None
+        for view in data.get("views", {}).get("view", []):
+            content_url = view.get("contentUrl", "").lower()
+            if view_path.lower() in content_url:
+                view_id = view.get("id")
+                break
+
+        if not view_id:
+            print(f"[WARN] View ID bulunamadı: {view_path}")
             return []
 
-        fields = []
-        view_info = data.get("data", {}).get("view") or data.get("data", {}).get("altView")
+        # 2️⃣ CSV formatında veri al
+        url_data = f"{TABLEAU_BASE_URL}/api/3.21/sites/{site_id}/views/{view_id}/data"
+        headers["Accept"] = "text/csv"
+        response = requests.get(url_data, headers=headers, timeout=20)
+        response.raise_for_status()
 
-        if view_info and "fields" in view_info:
-            fields = [f["name"] for f in view_info["fields"]]
+        # 3️⃣ CSV’den kolon başlıklarını al
+        csv_text = response.text
+        reader = csv.reader(io.StringIO(csv_text))
+        headers_row = next(reader, None)
+        if not headers_row:
+            print(f"[WARN] Veri boş geldi: {view_path}")
+            return []
 
-        if not fields:
-            print(f"[WARN] View bulunamadı veya alan listesi boş: {qualified_name_with_site}")
-        else:
-            print(f"[INFO] Fields fetched for {qualified_name_with_site}: {fields}")
-
-        return fields
+        print(f"[INFO] Fields fetched for {view_path}: {headers_row}")
+        return headers_row
 
     except Exception as e:
-        print(f"[WARN] ⚠️ Tableau GraphQL fetch error for {view_path}: {e}")
+        print(f"[WARN] ⚠️ Tableau REST fetch error for {view_path}: {e}")
         return []
 
 # --- OpenAI ile rapor eşleştirme ---
