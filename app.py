@@ -222,8 +222,29 @@ def health():
 
 @api.get("/debug_views")
 def debug_views():
-    print("=== VIEW TEST ÇALIŞIYOR ===")
-    result = get_tableau_fields("LFL/MacrocenterLFL")
-    print("=== VIEW TEST SONU ===")
-    return {"fields": result}
+    print("=== VIEW TEST BAŞLADI ===")
+    try:
+        token, site_id = get_tableau_token()
+        if not token:
+            return {"error": "Token alınamadı"}
+
+        url_lookup = f"{TABLEAU_BASE_URL}/api/3.21/sites/{site_id}/views"
+        headers = {"X-Tableau-Auth": token, "Accept": "application/json"}
+        response = requests.get(url_lookup, headers=headers, timeout=15)
+        response.raise_for_status()
+        data = response.json()
+
+        views = [
+            {"name": v.get("name"), "contentUrl": v.get("contentUrl")}
+            for v in data.get("views", {}).get("view", [])
+        ]
+
+        print("[DEBUG] Tableau'dan dönen view listesi:")
+        for v in views:
+            print(f" - {v['name']} | {v['contentUrl']}")
+
+        return {"views": views}
+    except Exception as e:
+        print(f"[ERROR] Debug view hatası: {e}")
+        return {"error": str(e)}
 
