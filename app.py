@@ -85,7 +85,7 @@ def get_tableau_fields(view_path):
         view_id = None
         for view in data.get("views", {}).get("view", []):
             content_url = view.get("contentUrl", "").lower()
-            if view_path.lower() in content_url:
+            if view_path.lower().split("/")[-1] in content_url.lower():
                 view_id = view.get("id")
                 break
 
