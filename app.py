@@ -39,13 +39,9 @@ TABLEAU_VIEWS = {
         "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/MACRONLINEPOCRaporu/MACRONLINEPOCRAPORU"
     },
     "macrocenter lfl raporu": {
-        "path": "LFL/MacrocenterLFL/sheets/MacrocenterLFLGün",
-        "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/LFL/MacrocenterLFL/MacrocenterLFLGün"
+        "path": "Macrocenter/sheets/KAPASITEKULLANIMI",
+        "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/Macrocenter/KAPASITEKULLANIMI"
     }
-    "macrocenter lfl raporu": {
-    "path": "LFL/MacrocenterLFL/sheets/MacrocenterLFLG%C3%BCn1",
-    "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/LFL/MacrocenterLFL/MacrocenterLFLG%C3%BCn1"
-}
 }
 
 # --- Tableau Authentication ---
