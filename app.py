@@ -20,89 +20,59 @@ SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET")
 # === Raporlar ve anahtar kelimeler ===
 TABLEAU_REPORTS = {
     "hemen analiz raporu": {
-        "keywords": [
-            "hemen", "analiz", "performans", "operasyon", "teslimat", "lead time",
-            "toplama", "kuryeye atama", "bekleme", "müşteriye gösterilen teslimat süresi",
-            "iptal", "yok satmalı", "alternatif ürün", "kayıp tl", "%kayıp",
-            "ort sepet", "ortalama sepet", "tso", "cnf", "meta", "nac", "nsf", "pnf", "snf",
-            "ortalama sipariş puanı", "ortalama teslimat puanı", "müşteri puanı"
-        ],
-        "desc": "Hemen Company operasyonunun teslimat, toplama, iptal ve müşteri memnuniyeti performansını analiz eden detaylı operasyon raporu.",
+        "keywords": ["hemen", "analiz", "performans", "operasyon", "teslimat"],
+        "desc": "Hemen Company operasyon performans analiz raporu.",
         "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/HemenLFL/HemenAnaliz"
     },
     "kapasite raporu": {
-        "keywords": [
-            "kapasite", "kko", "doluluk", "boşluk", "verimlilik", "kota", "planlama",
-            "araç", "araç sayısı", "motorbike", "panelvan", "araç tipi", "personel kapasitesi",
-            "45 dk sipariş", "hemen sipariş", "ad sayısı", "doluluk oranı"
-        ],
-        "desc": "Mağaza, araç ve personel bazında kapasite kullanım oranlarını, kota planlamalarını ve operasyonel doluluk durumlarını gösteren rapor.",
+        "keywords": ["kapasite", "kko", "doluluk", "kota", "planlama"],
+        "desc": "Mağaza / araç / personel kapasite ve verimlilik raporu.",
         "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/KAPASTEKONTROL_17566530192920/KAPASTERAPORU"
     },
     "sanal market analizi lfl": {
-        "keywords": [
-            "sanal", "online", "market", "lfl", "analiz", "ciro", "gelir", "satış", "kayıp", 
-            "iptal", "%iptal", "yok satma", "toplama uyumu", "teslimata uyum", "tso",
-            "sipariş puanı", "teslimat puanı", "kanal performansı", "hızlı sipariş",
-            "araç", "personel", "verimlilik", "servis seviyesi"
-        ],
-        "desc": "Sanal marketlerin LFL (Like-for-Like) bazında ciro, sipariş, kapasite, iptal, teslimat ve müşteri memnuniyeti metriklerini gösteren detaylı performans raporu.",
+        "keywords": ["sanal", "market", "lfl", "ciro", "gelir", "sipariş"],
+        "desc": "Sanal Market LFL bazlı ciro, sipariş ve operasyonel performans raporu.",
         "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/LFL/SanalMarketLFL_1"
     },
     "macrocenter lfl raporu": {
-        "keywords": [
-            "macro", "macrocenter", "lfl", "ciro", "gelir", "satış", "kayıp", 
-            "sipariş", "iptal", "şikayet", "kapasite", "verimlilik", "toplama uyumu",
-            "teslimata uyum", "mükemmel sipariş", "araç başı", "ad başı",
-            "teslimat puanı", "sipariş puanı", "operasyonel performans",
-            "servis kalitesi", "kanal karşılaştırma", "macro lfl", "macro raporu"
-        ],
-        "desc": "Macrocenter mağazalarının LFL bazında ciro, kapasite, sipariş kalitesi ve operasyonel performans metriklerini gösteren detaylı rapor.",
+        "keywords": ["macro", "macrocenter", "ciro", "sipariş", "verimlilik"],
+        "desc": "Macrocenter LFL bazlı operasyon ve ciro performans raporu.",
         "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/LFL/MacrocenterLFL"
     }
 }
 
 # === Kullanıcı geçmişi ===
-conversation_history = defaultdict(list)
-MAX_HISTORY = 3
+conversation_state = defaultdict(dict)
 
-# === Rapor skoru ===
-def keyword_score(message: str, keywords: list[str]) -> int:
+# === Rapor skorlama ===
+def keyword_score(message, keywords):
     msg = message.lower()
     return sum(1 for kw in keywords if kw in msg)
 
-# === En uygun raporu bul ===
-def find_best_report(user_message: str):
+# === Eşleşen raporları bul ===
+def find_matching_reports(user_message):
+    scored = []
     text = user_message.lower()
-    scores = {name: keyword_score(text, info["keywords"]) for name, info in TABLEAU_REPORTS.items()}
-    best = max(scores, key=scores.get)
-    return TABLEAU_REPORTS[best] if scores[best] > 0 else None
+    for name, info in TABLEAU_REPORTS.items():
+        score = keyword_score(text, info["keywords"])
+        if score > 0:
+            scored.append((score, name, info))
+    scored.sort(reverse=True, key=lambda x: x[0])
+    return scored  # [(score, name, info), ...]
 
 # === OpenAI doğal konuşma ===
-def openai_chat_response(user_message: str, history: list[str]):
+def openai_chat_response(user_message):
     try:
-        messages = [
-            {
-                "role": "system",
-                "content": (
-                    "Sen akıllı, analitik ve sakin bir iş asistanısın. "
-                    "Kullanıcıyla profesyonel ama doğal biçimde konuş. "
-                    "Veri ve performans odaklı düşünürsün, ancak insani bir sıcaklık da taşırsın. "
-                    "Cevapların kısa, net, mantıklı ve dostane olmalı."
-                )
-            }
-        ]
-
-        # kısa geçmişi dahil et
-        for h in history[-3:]:
-            messages.append({"role": "user", "content": h})
-        messages.append({"role": "user", "content": user_message})
-
-        response = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "Kısa ve net konuş. Profesyonel ama samimi ol."},
+                {"role": "user", "content": user_message}
+            ]
+        )
         return response.choices[0].message.content.strip()
-    except Exception as e:
-        print(f"[ERROR] OpenAI chat hatası: {e}")
-        return "Şu anda biraz meşgulüm ama birkaç saniye içinde analizlere dönerim."
+    except:
+        return "Şu anda biraz meşgulüm ama 1 dk sonra tekrar deneyebilirsin 🙂"
 
 # === Slack + FastAPI ===
 bolt_app = SlackApp(token=SLACK_BOT_TOKEN, signing_secret=SLACK_SIGNING_SECRET)
@@ -114,31 +84,49 @@ def handle_message_events(body, say, logger):
     try:
         event = body.get("event", {})
         user = event.get("user")
-        text = event.get("text", "").strip()
+        text = event.get("text", "").strip().lower()
 
         if not user or event.get("bot_id"):
             return
 
-        # konuşma geçmişini kaydet
-        conversation_history[user].append(text)
-        if len(conversation_history[user]) > MAX_HISTORY:
-            conversation_history[user] = conversation_history[user][-MAX_HISTORY:]
+        # Eğer kullanıcıdan rapor seçimi bekleniyorsa:
+        if conversation_state[user].get("awaiting_selection"):
+            options = conversation_state[user]["awaiting_selection"]
+            if text.isdigit() and 1 <= int(text) <= len(options):
+                _, name, rapor = options[int(text)-1]
+                say(f"<@{user}> 🔗 **{name.title()}** raporu açıyorum:\n{rapor['link']}")
+                conversation_state[user].pop("awaiting_selection")
+                return
+            else:
+                say(f"<@{user}> Geçerli bir numara seçmelisin 🙂")
+                return
 
-        # 1️⃣ Rapor araması
-        rapor = find_best_report(text)
-        if rapor:
-            say(f"<@{user}> 📊 Analiz ettim:\n**{rapor['desc']}**\n🔗 {rapor['link']}")
+        # Eşleşen raporları bul
+        matches = find_matching_reports(text)
+
+        if matches:
+            # Eğer tek rapor eşleşiyorsa -> direkt göster
+            if len(matches) == 1:
+                _, name, rapor = matches[0]
+                say(f"<@{user}> 📊 **{rapor['desc']}**\n🔗 {rapor['link']}")
+                return
+
+            # Birden fazla eşleşiyorsa -> seçim iste
+            conversation_state[user]["awaiting_selection"] = matches
+            say(f"<@{user}> Ciro / performans bilgisi birden fazla raporda mevcut. Hangisini görmek istersin?")
+            for i, (_, name, rapor) in enumerate(matches, start=1):
+                say(f"{i}) **{name.title()}** – {rapor['desc']}")
+            say("Lütfen sadece numara ile cevap ver. 🙂")
             return
 
-        # 2️⃣ Aksi halde OpenAI’den doğal yanıt
-        reply = openai_chat_response(text, conversation_history[user])
+        # OpenAI yanıtı
+        reply = openai_chat_response(text)
         say(f"<@{user}> {reply}")
 
     except Exception as e:
-        print(f"[Slack Error] {e}")
-        say("Bir hata oluştu, ama panik yok — birkaç saniye içinde toparlarım.")
+        logger.error(e)
+        say("Ufak bir hata oldu ama sorun değil, toparlıyorum 🚀")
 
-# === FastAPI endpointleri ===
 @api.post("/slack/events")
 async def endpoint(req: Request):
     return await handler.handle(req)
