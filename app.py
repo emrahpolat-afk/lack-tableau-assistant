@@ -42,6 +42,10 @@ TABLEAU_VIEWS = {
         "path": "LFL/MacrocenterLFL/sheets/MacrocenterLFLGün",
         "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/LFL/MacrocenterLFL/MacrocenterLFLGün"
     }
+    "macrocenter lfl raporu": {
+    "path": "LFL/MacrocenterLFL/sheets/MacrocenterLFLG%C3%BCn1",
+    "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/LFL/MacrocenterLFL/MacrocenterLFLG%C3%BCn1"
+}
 }
 
 # --- Tableau Authentication ---
