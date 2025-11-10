@@ -20,23 +20,44 @@ SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET")
 # === Raporlar ve anahtar kelimeler ===
 TABLEAU_REPORTS = {
     "hemen analiz raporu": {
-        "keywords": ["hemen", "analiz", "performans", "operasyon", "teslimat"],
-        "desc": "Hemen Company operasyon performans analiz raporu.",
+        "keywords": [
+            "hemen", "analiz", "performans", "operasyon", "teslimat", "lead time",
+            "toplama", "kuryeye atama", "bekleme", "müşteriye gösterilen teslimat süresi",
+            "iptal", "yok satmalı", "alternatif ürün", "kayıp tl", "%kayıp",
+            "ort sepet", "ortalama sepet", "tso", "cnf", "meta", "nac", "nsf", "pnf", "snf",
+            "ortalama sipariş puanı", "ortalama teslimat puanı", "müşteri puanı"
+        ],
+        "desc": "Hemen Company operasyonunun teslimat, toplama, iptal ve müşteri memnuniyeti performansını analiz eden detaylı operasyon raporu.",
         "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/HemenLFL/HemenAnaliz"
     },
     "kapasite raporu": {
-        "keywords": ["kapasite", "kko", "doluluk", "kota", "planlama"],
-        "desc": "Mağaza / araç / personel kapasite ve verimlilik raporu.",
+        "keywords": [
+            "kapasite", "kko", "doluluk", "boşluk", "verimlilik", "kota", "planlama",
+            "araç", "araç sayısı", "motorbike", "panelvan", "araç tipi", "personel kapasitesi",
+            "45 dk sipariş", "hemen sipariş", "ad sayısı", "doluluk oranı"
+        ],
+        "desc": "Mağaza, araç ve personel bazında kapasite kullanım oranlarını, kota planlamalarını ve operasyonel doluluk durumlarını gösteren rapor.",
         "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/KAPASTEKONTROL_17566530192920/KAPASTERAPORU"
     },
     "sanal market analizi lfl": {
-        "keywords": ["sanal", "market", "lfl", "ciro", "gelir", "sipariş"],
-        "desc": "Sanal Market LFL bazlı ciro, sipariş ve operasyonel performans raporu.",
+        "keywords": [
+            "sanal", "online", "market", "lfl", "analiz", "ciro", "gelir", "satış", "kayıp", 
+            "iptal", "%iptal", "yok satma", "toplama uyumu", "teslimata uyum", "tso",
+            "sipariş puanı", "teslimat puanı", "kanal performansı", "hızlı sipariş",
+            "araç", "personel", "verimlilik", "servis seviyesi"
+        ],
+        "desc": "Sanal marketlerin LFL (Like-for-Like) bazında ciro, sipariş, kapasite, iptal, teslimat ve müşteri memnuniyeti metriklerini gösteren detaylı performans raporu.",
         "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/LFL/SanalMarketLFL_1"
     },
     "macrocenter lfl raporu": {
-        "keywords": ["macro", "macrocenter", "ciro", "sipariş", "verimlilik"],
-        "desc": "Macrocenter LFL bazlı operasyon ve ciro performans raporu.",
+        "keywords": [
+            "macro", "macrocenter", "lfl", "ciro", "gelir", "satış", "kayıp", 
+            "sipariş", "iptal", "şikayet", "kapasite", "verimlilik", "toplama uyumu",
+            "teslimata uyum", "mükemmel sipariş", "araç başı", "ad başı",
+            "teslimat puanı", "sipariş puanı", "operasyonel performans",
+            "servis kalitesi", "kanal karşılaştırma", "macro lfl", "macro raporu"
+        ],
+        "desc": "Macrocenter mağazalarının LFL bazında ciro, kapasite, sipariş kalitesi ve operasyonel performans metriklerini gösteren detaylı rapor.",
         "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/LFL/MacrocenterLFL"
     }
 }
