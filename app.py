@@ -36,7 +36,7 @@ TABLEAU_VIEWS = {
         "path": "MACRONLINEPOCRaporu/sheets/MACRONLINEPOCRAPORU",
         "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/MACRONLINEPOCRaporu/MACRONLINEPOCRAPORU"
     },
-    "macrocenter lfl raporu": {
+   "macrocenter lfl raporu": {
     "path": "LFL/MacrocenterLFL/sheets/MacrocenterLFLGün1",
     "link": "https://prod-useast-b.online.tableau.com/#/site/emigros/views/LFL/MacrocenterLFL"
 }
