@@ -85,9 +85,10 @@ def get_tableau_fields(view_path):
         data = response.json()
 
         view_id = None
+        target_name = view_path.lower().split("/")[-1].split("?")[0].split("_")[0]
         for view in data.get("views", {}).get("view", []):
             content_url = view.get("contentUrl", "").lower()
-            if view_path.lower().split("/")[-1] in content_url.lower():
+            if target_name in content_url:
                 view_id = view.get("id")
                 break
 
@@ -103,7 +104,7 @@ def get_tableau_fields(view_path):
         data_response = requests.get(data_url, headers=headers, params=params, timeout=15)
 
         if data_response.status_code != 200:
-            print(f"[WARN] Veri alınamadı: {data_response.status_code} - {data_response.text}")
+            print(f"[WARN] Veri alınamadı: {data_response.status_code} - {data_response.text[:200]}")
             return []
 
         csv_data = data_response.text
