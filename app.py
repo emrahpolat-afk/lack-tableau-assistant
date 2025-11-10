@@ -62,77 +62,81 @@ TABLEAU_REPORTS = {
     }
 }
 
-# === Kullanıcı bazlı kısa hafıza ===
+# === Kullanıcı geçmişi ===
 conversation_history = defaultdict(list)
 MAX_HISTORY = 3
 
-# === Basit kelime skoru ===
+# === Rapor skoru ===
 def keyword_score(message: str, keywords: list[str]) -> int:
     msg = message.lower()
-    score = 0
-    for kw in keywords:
-        if kw in msg:
-            score += 1
-    return score
+    return sum(1 for kw in keywords if kw in msg)
 
-# === En iyi raporu bul ===
-def find_best_report(user_message: str, user_id: str):
+# === En uygun raporu bul ===
+def find_best_report(user_message: str):
     text = user_message.lower()
-    
-    # 1️⃣ Macro özel durumu
-    if "macro" in text or "macrocenter" in text:
-        print("[INFO] 🎯 Macro kelimesi tespit edildi — Macrocenter LFL raporu seçildi.")
-        return TABLEAU_REPORTS["macrocenter lfl raporu"]
-
-    # 2️⃣ Diğer raporlar için skor hesapla
     scores = {name: keyword_score(text, info["keywords"]) for name, info in TABLEAU_REPORTS.items()}
-    best_match = max(scores, key=scores.get)
-    if scores[best_match] > 0:
-        print(f"[INFO] 🔍 En yüksek skor: {best_match} ({scores[best_match]})")
-        return TABLEAU_REPORTS[best_match]
-    return None
+    best = max(scores, key=scores.get)
+    return TABLEAU_REPORTS[best] if scores[best] > 0 else None
 
-# === Slack + FastAPI entegrasyonu ===
+# === OpenAI doğal konuşma ===
+def openai_chat_response(user_message: str, history: list[str]):
+    try:
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "Sen akıllı, analitik ve sakin bir iş asistanısın. "
+                    "Kullanıcıyla profesyonel ama doğal biçimde konuş. "
+                    "Veri ve performans odaklı düşünürsün, ancak insani bir sıcaklık da taşırsın. "
+                    "Cevapların kısa, net, mantıklı ve dostane olmalı."
+                )
+            }
+        ]
+
+        # kısa geçmişi dahil et
+        for h in history[-3:]:
+            messages.append({"role": "user", "content": h})
+        messages.append({"role": "user", "content": user_message})
+
+        response = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"[ERROR] OpenAI chat hatası: {e}")
+        return "Şu anda biraz meşgulüm ama birkaç saniye içinde analizlere dönerim."
+
+# === Slack + FastAPI ===
 bolt_app = SlackApp(token=SLACK_BOT_TOKEN, signing_secret=SLACK_SIGNING_SECRET)
 api = FastAPI()
 handler = SlackRequestHandler(bolt_app)
 
-# === Slack event listener ===
 @bolt_app.event("message")
 def handle_message_events(body, say, logger):
     try:
         event = body.get("event", {})
         user = event.get("user")
-        text = event.get("text", "").strip().lower()
+        text = event.get("text", "").strip()
 
         if not user or event.get("bot_id"):
             return
 
-        # 💬 Küçük sohbetleri algıla
-        greetings = ["merhaba", "selam", "günaydın", "iyi akşamlar", "hey"]
-        inquiries = ["nasılsın", "nasıl gidiyor", "ne haber"]
-        thanks = ["teşekkür", "sağ ol", "eyvallah"]
+        # konuşma geçmişini kaydet
+        conversation_history[user].append(text)
+        if len(conversation_history[user]) > MAX_HISTORY:
+            conversation_history[user] = conversation_history[user][-MAX_HISTORY:]
 
-        if any(word in text for word in greetings):
-            say(f"Merhaba <@{user}> 👋 Nasılsın? Bugün hangi rapora bakalım?")
-            return
-        if any(word in text for word in inquiries):
-            say(f"Gayet iyiyim <@{user}> 😊 Verilerle aramız gayet iyi! Sen nasılsın?")
-            return
-        if any(word in text for word in thanks):
-            say(f"Rica ederim <@{user}> 🙌 Yardımcı olabildiysem ne mutlu!")
-            return
-
-        # 🔎 Rapor bulma
-        rapor = find_best_report(text, user)
+        # 1️⃣ Rapor araması
+        rapor = find_best_report(text)
         if rapor:
-            say(f"<@{user}> 🧭 Mesajını analiz ettim:\n**{rapor['desc']}**\n🔗 {rapor['link']}")
-        else:
-            say(f"<@{user}> Bu konuda uygun bir rapor bulamadım 🤔")
+            say(f"<@{user}> 📊 Analiz ettim:\n**{rapor['desc']}**\n🔗 {rapor['link']}")
+            return
+
+        # 2️⃣ Aksi halde OpenAI’den doğal yanıt
+        reply = openai_chat_response(text, conversation_history[user])
+        say(f"<@{user}> {reply}")
 
     except Exception as e:
         print(f"[Slack Error] {e}")
-        say("Bir hata oluştu, tekrar dener misin?")
+        say("Bir hata oluştu, ama panik yok — birkaç saniye içinde toparlarım.")
 
 # === FastAPI endpointleri ===
 @api.post("/slack/events")
@@ -141,4 +145,4 @@ async def endpoint(req: Request):
 
 @api.get("/")
 def root():
-    return {"status": "Smart Tableau Assistant aktif 🚀"}
+    return {"status": "Analitik Tableau Slack Asistanı aktif 🚀"}
